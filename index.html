@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>江湖录 — GM Engine</title>
+<style>
+  :root{
+    --ink:#1C1917; --paper:#221E1B; --paper-raised:#2A2521;
+    --brass:#c9a24a; --brass-dim:#8a733a; --text:#E0E0E0; --text-dim:#9C9690;
+    --rule:#3D372F; --danger:#b5533f; --ok:#6b8f5a; --qi:#5a8f9c;
+    --serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--text);font-family:var(--serif);min-height:100vh;}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:14px;margin-bottom:24px;}
+  header h1{font-family:var(--mono);font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0;font-weight:600;}
+  header .sub{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+
+  .setup-card{background:var(--paper-raised);border:1px solid var(--rule);border-radius:2px;padding:28px;max-width:640px;margin:40px auto;}
+  .setup-card h2{font-family:var(--serif);font-size:22px;margin:0 0 6px;color:var(--text);}
+  .setup-card p.hint{font-family:var(--mono);font-size:12px;color:var(--text-dim);margin:0 0 22px;line-height:1.6;}
+  .setup-card a{color:var(--brass);}
+  label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--brass-dim);margin:16px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text],input[type=password],input[type=number],textarea,select{
+    width:100%;background:var(--ink);border:1px solid var(--rule);color:var(--text);
+    padding:10px 12px;font-family:var(--serif);font-size:15px;border-radius:2px;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brass-dim);}
+  textarea{resize:vertical;min-height:60px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .row4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .row3 label,.row4 label{margin-top:0;font-size:10px;}
+  button{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--brass);color:var(--ink);border:none;padding:11px 18px;border-radius:2px;cursor:pointer;font-weight:600;}
+  button:hover{background:#ddb85f;}
+  button.ghost{background:transparent;border:1px solid var(--rule);color:var(--text-dim);}
+  button.ghost:hover{border-color:var(--brass-dim);color:var(--text);}
+  button:disabled{opacity:.5;cursor:default;}
+  .setup-actions{margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;}
+  .section-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin:26px 0 4px;border-top:1px solid var(--rule);padding-top:18px;}
+  .import-box{margin-top:14px;}
+  details{margin-top:20px;border-top:1px solid var(--rule);padding-top:14px;}
+  summary{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass-dim);cursor:pointer;}
+
+  .game{display:grid;grid-template-columns:1fr 320px;gap:22px;}
+  @media (max-width:780px){ .game{grid-template-columns:1fr;} }
+
+  .log{background:var(--paper);border:1px solid var(--rule);border-radius:2px;padding:20px 22px;min-height:420px;max-height:60vh;overflow-y:auto;}
+  .log-entry{margin-bottom:18px;line-height:1.7;}
+  .log-entry.player{font-family:var(--mono);font-size:13px;color:var(--brass);margin-bottom:6px;}
+  .log-entry.player::before{content:"> ";color:var(--brass-dim);}
+  .log-entry.narration{font-size:16px;color:var(--text);white-space:pre-wrap;}
+  .log-entry.system{font-family:var(--mono);font-size:11px;color:var(--text-dim);border-left:2px solid var(--rule);padding-left:10px;}
+  .log-entry.savebox{font-family:var(--mono);font-size:10.5px;color:var(--text-dim);background:var(--ink);border:1px solid var(--rule);padding:10px;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto;border-radius:2px;}
+
+  .options-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .opt-btn{background:var(--paper-raised);border:1px solid var(--brass-dim);color:var(--text);font-family:var(--serif);font-size:13.5px;padding:8px 14px;border-radius:2px;cursor:pointer;text-align:left;}
+  .opt-btn:hover{border-color:var(--brass);background:#332b1f;}
+
+  .composer{display:flex;gap:8px;margin-top:14px;}
+  .composer input{flex:1;}
+  .composer button{flex-shrink:0;}
+
+  .sidebar{display:flex;flex-direction:column;gap:14px;}
+  .card{background:var(--paper);border:1px solid var(--rule);border-radius:2px;padding:16px 18px;}
+  .card h3{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass-dim);margin:0 0 12px;border-bottom:1px solid var(--rule);padding-bottom:8px;}
+  .stat-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:13px;margin-top:10px;}
+  .stat-row:first-child{margin-top:0;}
+  .bar{height:6px;background:var(--ink);border-radius:3px;overflow:hidden;margin-top:6px;}
+  .bar-fill{height:100%;transition:width .3s ease;}
+  .bar-fill.hp{background:var(--ok);}
+  .bar-fill.hp.low{background:var(--danger);}
+  .bar-fill.qi{background:var(--qi);}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:var(--mono);font-size:12px;margin-top:2px;}
+  .stat-grid div{text-align:center;background:var(--ink);border-radius:2px;padding:7px 2px;}
+  .stat-grid .v{display:block;font-size:16px;color:var(--brass);}
+  .resource-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;padding:4px 0;gap:8px;}
+  .resource-row span:last-child{text-align:right;}
+  .inv-list{list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:12px;}
+  .inv-list li{padding:6px 0;border-bottom:1px solid var(--rule);}
+  .inv-list li:last-child{border-bottom:none;}
+  .inv-row{display:flex;justify-content:space-between;}
+  .inv-row .qty{color:var(--brass-dim);}
+  .inv-meta{color:var(--text-dim);font-size:10.5px;margin-top:2px;line-height:1.5;}
+  .equip-tag{color:var(--brass);}
+  .empty-note{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+  .weight-bar{height:5px;background:var(--ink);border-radius:3px;overflow:hidden;margin:8px 0 4px;}
+  .weight-fill{height:100%;background:var(--brass-dim);}
+  .weight-fill.over{background:var(--danger);}
+  .time-line{font-family:var(--mono);font-size:13px;color:var(--brass);}
+
+  .footer-tools{display:flex;justify-content:space-between;margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--text-dim);flex-wrap:wrap;gap:8px;}
+  .footer-tools .left, .footer-tools .right{display:flex;gap:8px;align-items:center;}
+  .footer-tools button{padding:6px 10px;font-size:10px;}
+  .thinking{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+  .thinking::after{content:"";animation:dots 1.2s steps(4) infinite;}
+  @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>江湖录 — GM Engine</h1>
+    <div class="sub" id="headerSub">not configured</div>
+  </header>
+
+  <div id="setupScreen" class="setup-card">
+    <h2>入江湖 · Set the table</h2>
+    <p class="hint">
+      Needs a free Gemini API key — get one at
+      <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>.
+      Stored only in this browser.
+    </p>
+
+    <label>Gemini API key</label>
+    <input type="password" id="apiKey" placeholder="AIza... or AQ...">
+    <label>模型 Model</label>
+    <input type="text" id="modelName" value="gemini-3.5-flash-lite" placeholder="e.g. gemini-3.5-flash-lite">
+
+    <div class="section-label">角色 · Character</div>
+    <div class="row3">
+      <div><label>姓名 Name</label><input type="text" id="charName" placeholder="e.g. 沈惊鸿"></div>
+      <div><label>性别 Sex</label><input type="text" id="charSex" placeholder="e.g. 女"></div>
+      <div><label>年龄 Age</label><input type="number" id="charAge" value="22"></div>
+    </div>
+    <label>外貌 Appearance</label>
+    <textarea id="charAppearance" placeholder="brief physical description">眉目清冷，左颊一道旧疤，常穿一身洗得发白的青布劲装。</textarea>
+    <label>背景 Background</label>
+    <textarea id="charBackground" placeholder="origin, past, motivation">出身没落镖局，师门被灭，身负血仇，此刻正只身入江湖打探仇人下落。</textarea>
+
+    <div class="section-label">属性 · Attributes (freely adjustable in play)</div>
+    <div class="row3">
+      <div><label>内功 (Qi/MP scaling)</label><input type="number" id="attrNeigong" value="10"></div>
+      <div><label>体魄 (HP scaling)</label><input type="number" id="attrTipo" value="10"></div>
+      <div><label>力量</label><input type="number" id="attrLiliang" value="10"></div>
+    </div>
+    <div class="row3">
+      <div><label>悟性</label><input type="number" id="attrWuxing" value="10"></div>
+      <div><label>福缘</label><input type="number" id="attrFuyuan" value="10"></div>
+      <div><label>身法</label><input type="number" id="attrShenfa" value="10"></div>
+    </div>
+
+    <div class="section-label">状态 · Status</div>
+    <div class="row3">
+      <div><label>基础生命值 Base HP</label><input type="number" id="baseHp" value="10"></div>
+      <div><label>基础内力 Base Qi</label><input type="number" id="baseQi" value="10"></div>
+      <div><label>负重基础值 Carry base(斤)</label><input type="number" id="carryBase" value="20"></div>
+    </div>
+    <p class="hint">实际上限 = 基础值 + 对应属性 × 3（生命值看体魄，内力看内功），随属性变化自动重算。</p>
+
+    <div class="section-label">起始武器 · Starting weapon (optional)</div>
+    <div class="row3">
+      <div><label>名称 Name</label><input type="text" id="wpName" placeholder="留空则跳过"></div>
+      <div><label>重量 Weight(斤)</label><input type="number" id="wpWeight" value="2"></div>
+      <div><label>耐久度 Durability</label><input type="number" id="wpDurability" value="100"></div>
+    </div>
+    <div class="row3">
+      <div><label>命中修正 Accuracy mod</label><input type="number" id="wpAcc" value="0"></div>
+      <div><label>伤害骰 Damage dice</label><input type="text" id="wpDamage" placeholder="e.g. 1d6+1"></div>
+      <div><label>暴击率% Crit rate</label><input type="number" id="wpCrit" value="5"></div>
+    </div>
+    <label>特殊效果 Effects (comma-separated, optional)</label>
+    <input type="text" id="wpEffects" placeholder="e.g. 挥砍带风声，偷袭易被察觉">
+
+    <div class="section-label">起始防具/饰品 · Starting armor piece (optional)</div>
+    <div class="row4">
+      <div><label>名称 Name</label><input type="text" id="apName" placeholder="留空则跳过"></div>
+      <div><label>部位 Slot</label>
+        <select id="apSlot">
+          <option value="head">头部</option>
+          <option value="chest" selected>胸甲</option>
+          <option value="hands">手部</option>
+          <option value="feet">脚部</option>
+          <option value="ring">戒指</option>
+          <option value="accessory">饰品</option>
+        </select>
+      </div>
+      <div><label>重量 Weight(斤)</label><input type="number" id="apWeight" value="1.5"></div>
+      <div><label>耐久度 Durability</label><input type="number" id="apDurability" value="100"></div>
+    </div>
+    <div class="row3">
+      <div><label>防御修正 Defense mod</label><input type="number" id="apDefense" value="2"></div>
+      <div><label>命中修正 Accuracy mod</label><input type="number" id="apAcc" value="0"></div>
+    </div>
+    <label>特殊效果 Effects (comma-separated, optional)</label>
+    <input type="text" id="apEffects" placeholder="e.g. 夜间潜行更不易被察觉">
+
+    <div class="section-label">行囊 · Other starting inventory</div>
+    <label>one item per line: name, qty, weight(斤), durability(0-100), description</label>
+    <textarea id="startInv" placeholder="name, qty, weight, durability, description">银两, 20, 0.05, 100, 官铸纹银，江湖通用
+干粮, 4, 0.5, 100, 可支撑数日
+金创药, 2, 0.2, 100, 军中制式伤药</textarea>
+
+    <div class="section-label">开局 · Opening scene</div>
+    <textarea id="openingScene" placeholder="Describe the opening situation, in Chinese">黄昏，主角独自走在通往边境小镇"落雁镇"的官道上，身后是连绵青山，前方炊烟初起。</textarea>
+
+    <div class="setup-actions">
+      <button id="startBtn">入局 Begin</button>
+      <button class="ghost" id="loadBtn">读档 Load saved game</button>
+    </div>
+
+    <details>
+      <summary>或粘贴存档文本 · Or restore from a pasted save (e.g. from another device)</summary>
+      <div class="import-box">
+        <textarea id="importText" placeholder="Paste save text here" style="min-height:100px;"></textarea>
+        <div class="setup-actions">
+          <button class="ghost" id="importBtn">从存档载入 Load from pasted save</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div id="gameScreen" class="game" style="display:none;">
+    <div>
+      <div class="log" id="log"></div>
+      <div class="options-row" id="optionsRow"></div>
+      <div class="composer">
+        <input type="text" id="actionInput" placeholder="你要做什么？（输入 /save 可导出存档）">
+        <button id="sendBtn">行动 Act</button>
+      </div>
+      <div class="footer-tools">
+        <div class="left"><span id="statusLine"></span></div>
+        <div class="right">
+          <button class="ghost" id="exportBtn">存档 Export save</button>
+          <button class="ghost" id="resetBtn">重开 Reset game</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <div class="time-line" id="timeLine">—</div>
+      </div>
+      <div class="card">
+        <h3 id="sheetName">Character</h3>
+        <div class="stat-row"><span>生命值 HP</span><span id="hpText">--/--</span></div>
+        <div class="bar"><div class="bar-fill hp" id="hpFill"></div></div>
+        <div class="stat-row"><span>内力 Qi/MP</span><span id="qiText">--/--</span></div>
+        <div class="bar"><div class="bar-fill qi" id="qiFill"></div></div>
+      </div>
+      <div class="card">
+        <h3>属性 Attributes</h3>
+        <div class="stat-grid" id="attrGrid"></div>
+      </div>
+      <div class="card">
+        <h3>装备 Equipment</h3>
+        <div id="equipList"></div>
+      </div>
+      <div class="card">
+        <h3>状态 Resources</h3>
+        <div id="resourceList"></div>
+      </div>
+      <div class="card">
+        <h3>行囊 Inventory</h3>
+        <div class="weight-bar"><div class="weight-fill" id="weightFill"></div></div>
+        <div class="empty-note" id="weightText"></div>
+        <ul class="inv-list" id="invList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "jianghu_gm_state_v1";
+let state = null;
+let history = [];
+const SLOT_CAPACITY = { weapon:1, head:1, chest:1, hands:1, feet:1, ring:2, accessory:1, none:0 };
+const SLOT_LABELS = [["weapon","武器"],["head","头部"],["chest","胸甲"],["hands","手部"],["feet","脚部"],["ring","戒指"],["accessory","饰品"]];
+const TERMINAL_TOOLS = new Set(["present_options"]);
+const HP_PER_TIPO = 3;
+const QI_PER_NEIGONG = 3;
+
+// ---------- dice ----------
+function secureRandInt(min, max){
+  const range = max - min + 1;
+  const buf = new Uint32Array(1);
+  let x;
+  do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= Math.floor(4294967296 / range) * range);
+  return min + (x % range);
+}
+function rollDice(notation){
+  const m = /^(\d+)d(\d+)([+-]\d+)?$/i.exec((notation||"").trim());
+  if(!m) return {error:`bad dice notation: ${notation}`};
+  const [, nStr, dStr, modStr] = m;
+  const n = parseInt(nStr,10), d = parseInt(dStr,10), mod = modStr ? parseInt(modStr,10) : 0;
+  const rolls = [];
+  for(let i=0;i<n;i++) rolls.push(secureRandInt(1,d));
+  const total = rolls.reduce((a,b)=>a+b,0) + mod;
+  return {rolls, modifier:mod, total};
+}
+function maxHp(){ return (state.character.baseHp||10) + state.character.attributes.体魄 * HP_PER_TIPO; }
+function maxQi(){ return (state.character.baseQi||10) + state.character.attributes.内功 * QI_PER_NEIGONG; }
+function carryCapacity(){ return (state.character.carryBase || 20) + (state.character.attributes.力量 * 2); }
+function currentWeight(){ return state.inventory.reduce((sum,i)=> sum + (i.weight||0) * i.qty, 0); }
+function findItem(name){ return state.inventory.find(i => i.name === name); }
+function equippedNonWeapon(){ return state.inventory.filter(i => i.equipped && i.slot !== 'weapon'); }
+function passiveAccuracy(){ return equippedNonWeapon().reduce((s,i)=>s+(i.accuracy_mod||0),0); }
+function passiveDefense(){ return equippedNonWeapon().reduce((s,i)=>s+(i.defense_mod||0),0); }
+function clampVitals(){
+  state.character.hp = Math.min(state.character.hp, maxHp());
+  state.character.qi = Math.min(state.character.qi, maxQi());
+}
+
+function doCheck(modifier, item_name){
+  let mod = modifier + passiveAccuracy();
+  let itemNote;
+  if(item_name){
+    const it = findItem(item_name);
+    if(it){ mod += (it.accuracy_mod||0); itemNote = `含 ${item_name} 命中修正 ${it.accuracy_mod||0}`; }
+    else itemNote = `warning: item "${item_name}" not found, ignored`;
+  }
+  const clamped = Math.max(-2, Math.min(2, mod));
+  const roll = secureRandInt(1,20);
+  const total = roll + clamped;
+  const success = total > 10;
+  return {roll, requested_modifier:mod, applied_modifier:clamped, total, success, note:itemNote};
+}
+function doDamage(item_name, notation, modifier, crit_rate){
+  let dice = notation, cr = crit_rate||0, wearNote;
+  if(item_name){
+    const it = findItem(item_name);
+    if(it){
+      if(it.damage) dice = it.damage;
+      cr = it.crit_rate || cr;
+      it.durability = Math.max(0, (it.durability ?? 100) - 1);
+      wearNote = `${item_name} 耐久度-1(现${it.durability})`;
+    }
+  }
+  const base = rollDice(dice || "1d6");
+  if(base.error) return base;
+  let total = base.total + (modifier||0);
+  let isCrit = false;
+  if(cr > 0){ isCrit = secureRandInt(1,100) <= cr; if(isCrit) total *= 2; }
+  return {notation:dice, rolls:base.rolls, dice_modifier:base.modifier, applied_modifier:modifier||0, total, is_crit:isCrit, wear_note:wearNote};
+}
+function doApplyHp(delta, reason){
+  let applied = delta;
+  let defenseNote = "";
+  if(delta < 0){
+    const def = passiveDefense();
+    if(def > 0){
+      const mitigated = Math.min(0, delta + def);
+      defenseNote = ` (护甲减免${def}: 原始${delta} → 实际${mitigated})`;
+      applied = mitigated;
+    }
+  }
+  const before = state.character.hp;
+  state.character.hp = Math.max(0, Math.min(maxHp(), before + applied));
+  logSystem(`生命值 ${before} → ${state.character.hp} (${applied>=0?'+':''}${applied}) ${reason?'— '+reason:''}${defenseNote}`);
+  return {previous_hp:before, new_hp:state.character.hp, max_hp:maxHp(), raw_delta:delta, applied_delta:applied, defeated: state.character.hp<=0};
+}
+
+// ---------- tool implementations (ground truth) ----------
+const tools = {
+  resolve_check({description="", modifier=0, item_name=""}){
+    const r = doCheck(modifier, item_name);
+    logSystem(`判定 ${description||''}: 1d20=${r.roll} ${r.applied_modifier?(r.applied_modifier>0?'+':'')+r.applied_modifier:''} = ${r.total} → ${r.success?'成功':'失败'}${r.note?' ('+r.note+')':''}`);
+    saveState(); renderSidebar();
+    return r;
+  },
+  roll_damage({item_name="", notation="", modifier=0, crit_rate=0, description=""}){
+    const r = doDamage(item_name, notation, modifier, crit_rate);
+    if(r.error) return r;
+    logSystem(`伤害 ${description||''}: ${r.notation}${modifier?` ${modifier>0?'+':''}${modifier}`:''} = ${r.total}${r.is_crit?' 【暴击!】':''}${r.wear_note?' · '+r.wear_note:''}`);
+    saveState(); renderSidebar();
+    return r;
+  },
+  resolve_combat_action({description="", modifier=0, actor, item_name="", damage_notation="1d6", incoming_damage_notation="1d4"}){
+    const check = doCheck(modifier, item_name);
+    logSystem(`判定 ${description||''}: 1d20=${check.roll}${check.applied_modifier?(check.applied_modifier>0?'+':'')+check.applied_modifier:''}=${check.total} → ${check.success?'成功':'失败'}`);
+    let result = {check};
+    if(actor === "player_attacks"){
+      if(check.success){
+        const dmg = doDamage(item_name, damage_notation, 0, 0);
+        logSystem(`伤害: ${dmg.notation} = ${dmg.total}${dmg.is_crit?' 【暴击!】':''}${dmg.wear_note?' · '+dmg.wear_note:''}`);
+        result.damage_dealt = dmg;
+      } else {
+        result.damage_dealt = null;
+      }
+    } else if(actor === "player_defends"){
+      if(check.success){
+        result.damage_taken = 0;
+        result.hp = { new_hp: state.character.hp, max_hp: maxHp() };
+      } else {
+        const dmg = doDamage("", incoming_damage_notation, 0, 0);
+        const hpResult = doApplyHp(-Math.abs(dmg.total), "受击未能格挡/闪避");
+        result.damage_taken = Math.abs(hpResult.applied_delta);
+        result.hp = hpResult;
+      }
+    }
+    saveState(); renderSidebar();
+    return result;
+  },
+  update_hp({delta, reason=""}){
+    const r = doApplyHp(delta, reason);
+    saveState(); renderSidebar();
+    return r;
+  },
+  update_qi({delta, reason=""}){
+    const before = state.character.qi;
+    state.character.qi = Math.max(0, Math.min(maxQi(), before + delta));
+    logSystem(`内力 ${before} → ${state.character.qi} (${delta>=0?'+':''}${delta}) ${reason?'— '+reason:''}`);
+    saveState(); renderSidebar();
+    return {previous_qi:before, new_qi:state.character.qi, max_qi:maxQi(), insufficient: delta<0 && before < Math.abs(delta)};
+  },
+  modify_attribute({attribute, delta, reason=""}){
+    if(!(attribute in state.character.attributes)) return {error:`unknown attribute ${attribute}, must be one of 内功/体魄/力量/悟性/福缘/身法`};
+    const before = state.character.attributes[attribute];
+    state.character.attributes[attribute] = Math.max(0, before + delta);
+    clampVitals();
+    logSystem(`${attribute} ${before} → ${state.character.attributes[attribute]} (${delta>=0?'+':''}${delta}) ${reason?'— '+reason:''}`);
+    saveState(); renderSidebar();
+    return {attribute, previous_value:before, new_value: state.character.attributes[attribute], max_hp:maxHp(), max_qi:maxQi()};
+  },
+  add_item({name, description="", quantity=1, weight=0, durability=100, slot="none", accuracy_mod=0, defense_mod=0, damage="", crit_rate=0, effects=[]}){
+    const existing = findItem(name);
+    if(existing){ existing.qty += quantity; }
+    else {
+      state.inventory.push({name, description, qty:quantity, weight, durability, slot,
+        accuracy_mod, defense_mod, damage, crit_rate, effects: effects||[], equipped:false});
+    }
+    const w = currentWeight(), cap = carryCapacity();
+    logSystem(`+ ${quantity} × ${name} (重${weight}斤/件${slot!=='none'?', 部位:'+slot:''})`);
+    saveState(); renderSidebar();
+    return {ok:true, current_weight:w, carry_capacity:cap, over_capacity: w > cap};
+  },
+  remove_item({name, quantity=1}){
+    const existing = findItem(name);
+    if(!existing || existing.qty < quantity){
+      return {ok:false, error:`player does not have ${quantity} × ${name}`};
+    }
+    existing.qty -= quantity;
+    if(existing.qty <= 0) state.inventory = state.inventory.filter(i => i !== existing);
+    logSystem(`− ${quantity} × ${name}`);
+    saveState(); renderSidebar();
+    return {ok:true};
+  },
+  modify_item_durability({name, delta, reason=""}){
+    const existing = findItem(name);
+    if(!existing) return {ok:false, error:`player does not have ${name}`};
+    const before = existing.durability;
+    existing.durability = Math.max(0, Math.min(100, before + delta));
+    logSystem(`${name} 耐久度 ${before} → ${existing.durability} ${reason?'— '+reason:''}`);
+    saveState(); renderSidebar();
+    return {ok:true, previous_durability:before, new_durability:existing.durability, broken: existing.durability<=0};
+  },
+  equip_item({name}){
+    const it = findItem(name);
+    if(!it) return {ok:false, error:`player does not have ${name}`};
+    if(!it.slot || it.slot === 'none') return {ok:false, error:`${name} has no equipment slot`};
+    const cap = SLOT_CAPACITY[it.slot] ?? 1;
+    const inSlot = state.inventory.filter(i => i.equipped && i.slot === it.slot && i !== it);
+    if(inSlot.length >= cap){
+      const toUnequip = inSlot[0];
+      toUnequip.equipped = false;
+      logSystem(`卸下 ${toUnequip.name}（腾出${it.slot}位）`);
+    }
+    it.equipped = true;
+    logSystem(`装备 ${name} (${it.slot})`);
+    saveState(); renderSidebar();
+    return {ok:true, slot:it.slot};
+  },
+  unequip_item({name}){
+    const it = findItem(name);
+    if(!it) return {ok:false, error:`player does not have ${name}`};
+    it.equipped = false;
+    logSystem(`卸下 ${name}`);
+    saveState(); renderSidebar();
+    return {ok:true};
+  },
+  modify_resource({resource, delta, reason=""}){
+    if(!(resource in state.resources)) state.resources[resource] = 0;
+    state.resources[resource] += delta;
+    logSystem(`${resource} ${delta>=0?'+':''}${delta} ${reason?'— '+reason:''} (现 ${state.resources[resource]})`);
+    saveState(); renderSidebar();
+    return {resource, new_value: state.resources[resource]};
+  },
+  set_time({label}){
+    state.time = label;
+    document.getElementById("timeLine").textContent = label;
+    saveState();
+    return {ok:true, time:label};
+  },
+  present_options({options}){
+    renderOptions(options || []);
+    return {ok:true, count:(options||[]).length};
+  }
+};
+
+const toolDeclarations = [
+  { name:"resolve_combat_action", description:"PREFERRED for standard attack/defend sequences — resolves the check AND its conditional damage/HP consequence in one atomic step, saving a round trip versus calling resolve_check then roll_damage/update_hp separately. actor='player_attacks': rolls a check, and only if it succeeds also rolls damage with item_name (durability wears automatically). actor='player_defends': rolls a check (dodge/block), and only if it FAILS rolls incoming_damage_notation and applies it to the player's HP (passive armor mitigation applied automatically).",
+    parameters:{type:"OBJECT", properties:{
+      description:{type:"STRING"}, modifier:{type:"NUMBER"},
+      actor:{type:"STRING", description:"'player_attacks' or 'player_defends'"},
+      item_name:{type:"STRING", description:"weapon used (for accuracy + damage on attacks)"},
+      damage_notation:{type:"STRING", description:"fallback damage dice if item has none, e.g. '1d6+1'"},
+      incoming_damage_notation:{type:"STRING", description:"damage the player takes if a defend check fails, e.g. '1d8'"}
+    }, required:["description","actor"]}},
+  { name:"resolve_check", description:"Resolve a standalone check with no combat consequence (perception, persuasion, stealth, etc). Passive accuracy_mod from equipped non-weapon items applies automatically. Modifier hard-capped at ±2; success requires roll+modifier > 10.",
+    parameters:{type:"OBJECT", properties:{
+      description:{type:"STRING"}, modifier:{type:"NUMBER"}, item_name:{type:"STRING", description:"optional actively-used item contributing accuracy_mod"}
+    }, required:["description"]}},
+  { name:"roll_damage", description:"Roll damage independent of a check (environmental damage, a trap, etc). If item_name given, uses its damage/crit_rate and wears its durability.",
+    parameters:{type:"OBJECT", properties:{
+      item_name:{type:"STRING"}, notation:{type:"STRING"}, modifier:{type:"NUMBER"}, crit_rate:{type:"NUMBER"}, description:{type:"STRING"}
+    }, required:[]}},
+  { name:"update_hp", description:"Apply HP change directly (no check involved) — negative=damage, positive=healing. Passive defense_mod auto-subtracted from negative deltas.",
+    parameters:{type:"OBJECT", properties:{ delta:{type:"NUMBER"}, reason:{type:"STRING"} }, required:["delta"]}},
+  { name:"update_qi", description:"Spend or restore internal energy/Qi (MP). Negative=spend (e.g. using an internal technique), positive=restore (meditation, rest, pills). Max Qi is computed automatically from the 内功 attribute — do not track it yourself.",
+    parameters:{type:"OBJECT", properties:{ delta:{type:"NUMBER"}, reason:{type:"STRING"} }, required:["delta"]}},
+  { name:"modify_attribute", description:"Raise or lower one of the six core attributes (内功/体魄/力量/悟性/福缘/身法). Note: max HP scales with 体魄, max Qi scales with 内功 — changing either automatically recalculates the cap.",
+    parameters:{type:"OBJECT", properties:{
+      attribute:{type:"STRING", description:"one of: 内功, 体魄, 力量, 悟性, 福缘, 身法"}, delta:{type:"NUMBER"}, reason:{type:"STRING"}
+    }, required:["attribute","delta"]}},
+  { name:"add_item", description:"Add an item — loot, purchase, gift, or currency. Set slot for equippable gear (weapon/head/chest/hands/feet/ring/accessory). Weapons: set damage/crit_rate (active, only apply via item_name). Armor/rings/accessories: set defense_mod/accuracy_mod (passive, always-on while equipped). effects[] for creative freeform effects. Currency uses slot='none'.",
+    parameters:{type:"OBJECT", properties:{
+      name:{type:"STRING"}, description:{type:"STRING"}, quantity:{type:"NUMBER"},
+      weight:{type:"NUMBER"}, durability:{type:"NUMBER"},
+      slot:{type:"STRING", description:"weapon, head, chest, hands, feet, ring, accessory, or none"},
+      accuracy_mod:{type:"NUMBER"}, defense_mod:{type:"NUMBER"}, damage:{type:"STRING"}, crit_rate:{type:"NUMBER"},
+      effects:{type:"ARRAY", items:{type:"STRING"}}
+    }, required:["name","weight"]}},
+  { name:"remove_item", description:"Remove/consume/discard/lose/spend an item (including currency).",
+    parameters:{type:"OBJECT", properties:{ name:{type:"STRING"}, quantity:{type:"NUMBER"} }, required:["name"]}},
+  { name:"modify_item_durability", description:"Directly degrade or repair an item's durability outside of combat wear.",
+    parameters:{type:"OBJECT", properties:{ name:{type:"STRING"}, delta:{type:"NUMBER"}, reason:{type:"STRING"} }, required:["name","delta"]}},
+  { name:"equip_item", description:"Equip an item into its slot (auto-swaps out the oldest occupant if full).",
+    parameters:{type:"OBJECT", properties:{ name:{type:"STRING"} }, required:["name"]}},
+  { name:"unequip_item", description:"Unequip an item.",
+    parameters:{type:"OBJECT", properties:{ name:{type:"STRING"} }, required:["name"]}},
+  { name:"modify_resource", description:"Change a tracked abstract resource that is NOT a physical item — e.g. 声望, 疲劳, local law standing. Currency goes through add_item/remove_item.",
+    parameters:{type:"OBJECT", properties:{ resource:{type:"STRING"}, delta:{type:"NUMBER"}, reason:{type:"STRING"} }, required:["resource","delta"]}},
+  { name:"set_time", description:"Update the in-world time label (e.g. '第3天 · 黄昏'). Call whenever meaningful time passes.",
+    parameters:{type:"OBJECT", properties:{ label:{type:"STRING"} }, required:["label"]}},
+  { name:"present_options", description:"Present 2-5 preset next-action options. Call near the end of every turn, in the SAME response as your narration text.",
+    parameters:{type:"OBJECT", properties:{ options:{type:"ARRAY", items:{type:"STRING"}} }, required:["options"]}}
+];
+
+// ---------- system instruction ----------
+function systemInstruction(){
+  return `You are a strict, logical game master running a wuxia (Jianghu) RPG. You MUST reply to the player in Chinese (中文) at all times. These instructions are in English only for your reference.
+
+SETTING & LOGIC:
+- The Jianghu is a living, dynamic world: factions clash, NPCs keep schedules, low-probability dynamic events can occur.
+- Every action has consequences: injury, fatigue, reputation, and local law persist.
+- No absolute attribute cap, but power scaling flattens at high values.
+- Currency is just an inventory item with slot='none' — no separate gold counter.
+- Carrying capacity is a real constraint — check over_capacity from add_item and react narratively if exceeded.
+
+VITALS:
+- Max HP = base HP + 体魄×3. Max Qi (internal energy/MP) = base Qi + 内功×3. Both recompute automatically whenever the attribute changes — you never calculate or state these caps yourself, just read them from state.
+- Use update_qi when a technique costs internal energy or when the character rests/meditates to recover it. Qi is separate from HP.
+
+EQUIPMENT (mechanically enforced):
+- Slots: weapon, head, chest, hands, feet, ring (max 2), accessory. Only one item per slot equipped at a time (rings: two).
+- Weapon accuracy/damage/crit are ACTIVE — only apply when you pass item_name into a check or damage roll.
+- Armor/ring/accessory accuracy_mod/defense_mod are PASSIVE — auto-applied to every check and every incoming HP loss while equipped. Don't re-state or double-apply them.
+- effects[] are freeform creative flavor (slows target, aids stealth, etc) — not auto-enforced, honor them narratively and via modifiers you request.
+
+EFFICIENCY — MINIMIZE ROUND TRIPS:
+- For any standard attack or defend exchange, use resolve_combat_action instead of chaining resolve_check + roll_damage/update_hp separately — it resolves the whole sequence (including the conditional branch) in one call.
+- Issue every tool call a turn needs together in as few separate responses as possible. If you know you'll need add_item, modify_resource, or set_time regardless of a check's outcome, call them alongside the check in the same response rather than waiting.
+- Always call present_options in the SAME response as your final narration text, not as a separate follow-up turn.
+
+HARD RULES:
+- Every uncertain action MUST be resolved with a check (resolve_check or resolve_combat_action). Modifier hard-capped at ±2; success requires roll+modifier > 10.
+- Never narrate a kill/knockout not backed by HP reaching 0 via update_hp/resolve_combat_action.
+- Attribute changes: modify_attribute. Items: add_item/remove_item. Equip state: equip_item/unequip_item. Durability: modify_item_durability (or automatic via damage rolls). Abstract resources: modify_resource.
+- Advance time via set_time whenever meaningful time passes.
+
+PLAYER META / OUT-OF-CHARACTER INPUT:
+- The player may step outside the fiction ("OOC:", or clearly addressed to you as GM). Accommodate reasonably using your tools, without treating it as an in-fiction action requiring a check.
+- The player has a local "/save" command for exporting state as text — don't try to produce a save dump yourself.
+
+RESPONSE STRUCTURE:
+- Make all needed tool calls first; your narration text must always be included in your response once mechanics are resolved. Never send a turn with only tool calls and no narration — the player must always get a real description of what happened.
+- Do not restate HP/Qi/attributes/inventory/equipment/time in prose — shown separately.
+- Flowing connected prose, not choppy fragments. A few sentences to a short paragraph.
+- Never mention dice, tools, or mechanics by name in narration.
+- Character context (sex, age, appearance, background) is in state each turn — weave in naturally, don't repeat it verbatim.`;
+}
+
+// ---------- Gemini call loop ----------
+async function callGemini(userText){
+  const apiKey = state.apiKey;
+  const model = state.model || "gemini-3.5-flash-lite";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const publicState = {
+    character: { ...state.character, hp_max_computed: maxHp(), qi_max_computed: maxQi() },
+    resources: state.resources,
+    inventory: state.inventory,
+    time: state.time,
+    carry_capacity: carryCapacity(),
+    current_weight: currentWeight(),
+    passive_accuracy_from_gear: passiveAccuracy(),
+    passive_defense_from_gear: passiveDefense()
+  };
+
+  history.push({ role:"user", parts:[{ text:
+    `PLAYER ACTION: ${userText}\n\nCURRENT STATE (ground truth, do not contradict):\n${JSON.stringify(publicState, null, 2)}`
+  }]});
+
+  clearOptions();
+  const narrationChunks = [];
+  let guard = 0;
+  while(guard++ < 8){
+    const body = {
+      system_instruction:{ parts:[{text: systemInstruction()}] },
+      contents: history,
+      tools:[{ functionDeclarations: toolDeclarations }]
+    };
+    const res = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    if(!res.ok){
+      if(res.status === 429) throw new Error("请求过多，已达到当前配额/速率上限 (429)。按分钟计的限额约1分钟后恢复；按天计的限额要等太平洋时间午夜重置。可到 AI Studio 查看具体配额。");
+      if(res.status === 400) throw new Error("请求格式错误或 API 密钥无效 (400)。请检查密钥与模型名称。");
+      if(res.status === 403) throw new Error("权限被拒绝 (403)。密钥可能没有访问该模型的权限。");
+      const errText = await res.text();
+      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+    }
+    const data = await res.json();
+    const candidate = data.candidates && data.candidates[0];
+    if(!candidate) throw new Error("No candidate returned: " + JSON.stringify(data));
+    const parts = candidate.content.parts;
+    const functionCalls = parts.filter(p => p.functionCall);
+    const textHere = parts.filter(p => p.text).map(p => p.text).join("");
+    if(textHere) narrationChunks.push(textHere);
+
+    history.push({ role:"model", parts });
+
+    if(functionCalls.length === 0) break;
+
+    const responseParts = [];
+    for(const fc of functionCalls){
+      const fn = tools[fc.functionCall.name];
+      let result;
+      try{ result = fn ? fn(fc.functionCall.args || {}) : {error:`unknown tool ${fc.functionCall.name}`}; }
+      catch(e){ result = {error: String(e)}; }
+      responseParts.push({ functionResponse:{ name: fc.functionCall.name, response: result } });
+    }
+    history.push({ role:"user", parts: responseParts });
+
+    const allTerminal = functionCalls.every(fc => TERMINAL_TOOLS.has(fc.functionCall.name));
+    if(allTerminal) break; // fire-and-forget UI action, no need to spend another round trip confirming it ran
+  }
+  const narration = narrationChunks.join("\n\n").trim();
+  return narration || "（GM 一时踌躇，请换个说法再试一次）";
+}
+
+// ---------- persistence ----------
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({state, history})); }
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return false;
+  const parsed = JSON.parse(raw);
+  state = parsed.state; history = parsed.history || [];
+  return true;
+}
+function exportSaveText(){ return JSON.stringify({state, history}); }
+function applyImportedSave(raw){
+  const parsed = JSON.parse(raw);
+  state = parsed.state; history = parsed.history || [];
+  document.getElementById("setupScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "grid";
+  document.getElementById("headerSub").textContent = `${state.character.name} · ${state.model}`;
+  renderSidebar();
+  saveState();
+  logSystem("— 存档已载入 —");
+}
+
+// ---------- rendering ----------
+function logPlayer(text){ appendLog(`<div class="log-entry player">${escapeHtml(text)}</div>`); }
+function logNarration(text){ appendLog(`<div class="log-entry narration">${escapeHtml(text)}</div>`); }
+function logSystem(text){ appendLog(`<div class="log-entry system">${escapeHtml(text)}</div>`); }
+function logSaveBox(text){ appendLog(`<div class="log-entry system">— 存档文本（复制粘贴到"或粘贴存档文本"处即可在其他设备继续）—</div><div class="log-entry savebox">${escapeHtml(text)}</div>`); }
+function appendLog(html){
+  const log = document.getElementById("log");
+  log.insertAdjacentHTML("beforeend", html);
+  log.scrollTop = log.scrollHeight;
+}
+function escapeHtml(s){ const d=document.createElement("div"); d.innerText=s; return d.innerHTML; }
+
+function clearOptions(){ document.getElementById("optionsRow").innerHTML = ""; }
+function renderOptions(options){
+  const row = document.getElementById("optionsRow");
+  row.innerHTML = options.map(o => `<button class="opt-btn">${escapeHtml(o)}</button>`).join("");
+  row.querySelectorAll(".opt-btn").forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+      document.getElementById("actionInput").value = options[i];
+      document.getElementById("actionInput").focus();
+    });
+  });
+}
+
+function renderEquipment(){
+  const el = document.getElementById("equipList");
+  el.innerHTML = SLOT_LABELS.map(([key,label])=>{
+    const items = state.inventory.filter(i => i.equipped && i.slot === key);
+    const val = items.length ? items.map(i=>escapeHtml(i.name)).join("、") : '<span class="empty-note">（空）</span>';
+    return `<div class="resource-row"><span>${label}</span><span>${val}</span></div>`;
+  }).join("");
+}
+
+function renderSidebar(){
+  document.getElementById("sheetName").textContent = `${state.character.name}（${state.character.sex}·${state.character.age}岁）`;
+
+  const mh = maxHp(), mq = maxQi();
+  document.getElementById("hpText").textContent = `${state.character.hp} / ${mh}`;
+  const hpct = Math.max(0, Math.min(100, (state.character.hp/mh)*100));
+  const hfill = document.getElementById("hpFill");
+  hfill.style.width = hpct + "%";
+  hfill.className = "bar-fill hp" + (hpct <= 30 ? " low" : "");
+
+  document.getElementById("qiText").textContent = `${state.character.qi} / ${mq}`;
+  const qpct = Math.max(0, Math.min(100, (state.character.qi/mq)*100));
+  document.getElementById("qiFill").style.width = qpct + "%";
+
+  document.getElementById("attrGrid").innerHTML = Object.entries(state.character.attributes).map(([k,v]) =>
+    `<div>${k}<span class="v">${v}</span></div>`).join("");
+
+  renderEquipment();
+
+  const resList = document.getElementById("resourceList");
+  const entries = Object.entries(state.resources);
+  let resHtml = entries.length ? entries.map(([k,v]) =>
+    `<div class="resource-row"><span>${escapeHtml(k)}</span><span>${v}</span></div>`).join("") : '';
+  const pa = passiveAccuracy(), pd = passiveDefense();
+  resHtml += `<div class="resource-row"><span>护甲减免（被动）</span><span>${pd}</span></div>`;
+  resHtml += `<div class="resource-row"><span>命中加成（被动）</span><span>${pa>=0?'+':''}${pa}</span></div>`;
+  resList.innerHTML = resHtml;
+
+  const w = currentWeight(), cap = carryCapacity();
+  const wpct = Math.max(0, Math.min(100, (w/cap)*100));
+  const wfill = document.getElementById("weightFill");
+  wfill.style.width = wpct + "%";
+  wfill.className = "weight-fill" + (w > cap ? " over" : "");
+  document.getElementById("weightText").textContent = `${w.toFixed(2)} / ${cap.toFixed(1)} 斤`;
+
+  const invList = document.getElementById("invList");
+  invList.innerHTML = state.inventory.length ? state.inventory.map(i => {
+    const stats = [];
+    if(i.accuracy_mod) stats.push(`命中${i.accuracy_mod>0?'+':''}${i.accuracy_mod}`);
+    if(i.defense_mod) stats.push(`防御+${i.defense_mod}`);
+    if(i.damage) stats.push(`伤害${i.damage}`);
+    if(i.crit_rate) stats.push(`暴击${i.crit_rate}%`);
+    const slotStr = (i.slot && i.slot !== 'none') ? ` · 部位:${i.slot}` : '';
+    const effectsStr = (i.effects && i.effects.length) ? ` · ${i.effects.join('；')}` : '';
+    return `<li><div class="inv-row"><span>${i.equipped?'<span class="equip-tag">★</span> ':''}${escapeHtml(i.name)}</span><span class="qty">×${i.qty}</span></div>
+     <div class="inv-meta">${i.weight}斤/件 · 耐久${i.durability}%${slotStr}${stats.length?' · '+stats.join(' · '):''}${i.description?' · '+escapeHtml(i.description):''}${effectsStr}</div></li>`;
+  }).join("") : `<li class="empty-note">空</li>`;
+
+  document.getElementById("timeLine").textContent = state.time || "—";
+}
+
+// ---------- flow control ----------
+async function sendAction(){
+  const input = document.getElementById("actionInput");
+  const text = input.value.trim();
+  if(!text) return;
+
+  if(/^\/?save$/i.test(text) || text === "存档" || text === "/存档"){
+    input.value = "";
+    logPlayer(text);
+    logSaveBox(exportSaveText());
+    return;
+  }
+
+  input.value = "";
+  document.getElementById("sendBtn").disabled = true;
+  document.getElementById("statusLine").innerHTML = `<span class="thinking">GM 思考中</span>`;
+  logPlayer(text);
+  try{
+    const narration = await callGemini(text);
+    logNarration(narration);
+    saveState();
+  }catch(e){
+    logSystem(`Error: ${e.message}`);
+  }finally{
+    document.getElementById("sendBtn").disabled = false;
+    document.getElementById("statusLine").textContent = "";
+    input.focus();
+  }
+}
+
+function parseInventoryText(raw){
+  return raw.split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
+    const [name, qty, weight, durability, ...rest] = line.split(",").map(s=>s.trim());
+    return { name, qty: parseInt(qty,10)||1, weight: parseFloat(weight)||0,
+      durability: durability!==undefined?parseInt(durability,10):100,
+      description: rest.join(", "), slot:"none", accuracy_mod:0, defense_mod:0, damage:"", crit_rate:0, effects:[], equipped:false };
+  });
+}
+
+document.getElementById("startBtn").addEventListener("click", async ()=>{
+  const apiKey = document.getElementById("apiKey").value.trim();
+  if(!apiKey){ alert("Paste your Gemini API key first."); return; }
+  const model = document.getElementById("modelName").value.trim() || "gemini-3.5-flash-lite";
+
+  const inventory = parseInventoryText(document.getElementById("startInv").value);
+
+  const wpName = document.getElementById("wpName").value.trim();
+  if(wpName){
+    inventory.push({
+      name: wpName, description: "", qty: 1,
+      weight: parseFloat(document.getElementById("wpWeight").value) || 0,
+      durability: parseInt(document.getElementById("wpDurability").value,10) || 100,
+      slot: "weapon",
+      accuracy_mod: parseInt(document.getElementById("wpAcc").value,10) || 0,
+      defense_mod: 0,
+      damage: document.getElementById("wpDamage").value.trim(),
+      crit_rate: parseInt(document.getElementById("wpCrit").value,10) || 0,
+      effects: document.getElementById("wpEffects").value.split(",").map(s=>s.trim()).filter(Boolean),
+      equipped: true
+    });
+  }
+
+  const apName = document.getElementById("apName").value.trim();
+  if(apName){
+    inventory.push({
+      name: apName, description: "", qty: 1,
+      weight: parseFloat(document.getElementById("apWeight").value) || 0,
+      durability: parseInt(document.getElementById("apDurability").value,10) || 100,
+      slot: document.getElementById("apSlot").value,
+      accuracy_mod: parseInt(document.getElementById("apAcc").value,10) || 0,
+      defense_mod: parseInt(document.getElementById("apDefense").value,10) || 0,
+      damage: "", crit_rate: 0,
+      effects: document.getElementById("apEffects").value.split(",").map(s=>s.trim()).filter(Boolean),
+      equipped: true
+    });
+  }
+
+  state = {
+    apiKey, model,
+    character: {
+      name: document.getElementById("charName").value.trim() || "无名侠客",
+      sex: document.getElementById("charSex").value.trim() || "不详",
+      age: parseInt(document.getElementById("charAge").value,10) || 20,
+      appearance: document.getElementById("charAppearance").value.trim(),
+      background: document.getElementById("charBackground").value.trim(),
+      baseHp: parseInt(document.getElementById("baseHp").value,10) || 10,
+      baseQi: parseInt(document.getElementById("baseQi").value,10) || 10,
+      carryBase: parseFloat(document.getElementById("carryBase").value) || 20,
+      attributes: {
+        内功: parseInt(document.getElementById("attrNeigong").value,10) || 10,
+        体魄: parseInt(document.getElementById("attrTipo").value,10) || 10,
+        力量: parseInt(document.getElementById("attrLiliang").value,10) || 10,
+        悟性: parseInt(document.getElementById("attrWuxing").value,10) || 10,
+        福缘: parseInt(document.getElementById("attrFuyuan").value,10) || 10,
+        身法: parseInt(document.getElementById("attrShenfa").value,10) || 10
+      },
+      hp: 0, qi: 0
+    },
+    resources: { 声望: 0, 疲劳: 0 },
+    inventory,
+    time: "第1天 · 黄昏"
+  };
+  state.character.hp = maxHp();
+  state.character.qi = maxQi();
+
+  history = [];
+  document.getElementById("setupScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "grid";
+  document.getElementById("headerSub").textContent = `${state.character.name} · ${model}`;
+  renderSidebar();
+  saveState();
+
+  const opening = document.getElementById("openingScene").value.trim();
+  document.getElementById("statusLine").innerHTML = `<span class="thinking">GM 思考中</span>`;
+  try{
+    const narration = await callGemini(`(开始故事 / Begin the story.) 开局场景: ${opening}`);
+    logNarration(narration);
+    saveState();
+  }catch(e){ logSystem(`Error: ${e.message}`); }
+  document.getElementById("statusLine").textContent = "";
+});
+
+document.getElementById("loadBtn").addEventListener("click", ()=>{
+  if(loadState()){
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "grid";
+    document.getElementById("headerSub").textContent = `${state.character.name} · ${state.model}`;
+    renderSidebar();
+    logSystem("— 读档成功 —");
+  } else {
+    alert("No saved game found in this browser.");
+  }
+});
+
+document.getElementById("importBtn").addEventListener("click", ()=>{
+  const raw = document.getElementById("importText").value.trim();
+  if(!raw){ alert("Paste save text first."); return; }
+  try{ applyImportedSave(raw); }
+  catch(e){ alert("Could not parse that save text: " + e.message); }
+});
+
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  logSaveBox(exportSaveText());
+});
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(confirm("Erase saved game and return to setup?")){
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+document.getElementById("sendBtn").addEventListener("click", sendAction);
+document.getElementById("actionInput").addEventListener("keydown", e=>{ if(e.key==="Enter") sendAction(); });
+
+window.addEventListener("DOMContentLoaded", ()=>{
+  if(localStorage.getItem(STORAGE_KEY)){
+    document.getElementById("loadBtn").textContent = "读档 → Load saved game";
+  }
+});
+</script>
+</body>
+</html>
