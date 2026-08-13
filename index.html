@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — GM Engine</title>
+<style>
+  :root{
+    --ink:#17140f;
+    --paper:#1e1a14;
+    --paper-raised:#28221a;
+    --brass:#c9a24a;
+    --brass-dim:#8a733a;
+    --text:#e9e1cf;
+    --text-dim:#a89a7d;
+    --rule:#3a3226;
+    --danger:#b5533f;
+    --ok:#6b8f5a;
+    --serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--ink); color:var(--text);
+    font-family:var(--serif); min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 80px;}
+  header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--rule); padding-bottom:14px; margin-bottom:24px;
+  }
+  header h1{
+    font-family:var(--mono); font-size:15px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--brass); margin:0; font-weight:600;
+  }
+  header .sub{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+
+  /* ---- setup screen ---- */
+  .setup-card{
+    background:var(--paper-raised); border:1px solid var(--rule); border-radius:2px;
+    padding:28px; max-width:560px; margin:40px auto;
+  }
+  .setup-card h2{font-family:var(--serif);font-size:22px;margin:0 0 6px;color:var(--text);}
+  .setup-card p.hint{font-family:var(--mono);font-size:12px;color:var(--text-dim);margin:0 0 22px;line-height:1.6;}
+  .setup-card a{color:var(--brass);}
+  label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass-dim);margin:16px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=password], input[type=number], textarea{
+    width:100%; background:var(--ink); border:1px solid var(--rule); color:var(--text);
+    padding:10px 12px; font-family:var(--serif); font-size:15px; border-radius:2px;
+  }
+  input:focus, textarea:focus{outline:none; border-color:var(--brass-dim);}
+  textarea{resize:vertical; min-height:60px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  button{
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    background:var(--brass); color:var(--ink); border:none; padding:11px 18px;
+    border-radius:2px; cursor:pointer; font-weight:600;
+  }
+  button:hover{background:#ddb85f;}
+  button.ghost{background:transparent;border:1px solid var(--rule);color:var(--text-dim);}
+  button.ghost:hover{border-color:var(--brass-dim);color:var(--text);}
+  button:disabled{opacity:.5;cursor:default;}
+  .setup-actions{margin-top:24px;display:flex;gap:10px;}
+
+  /* ---- game screen ---- */
+  .game{display:grid; grid-template-columns:1fr 300px; gap:22px;}
+  @media (max-width:760px){ .game{grid-template-columns:1fr;} }
+
+  .log{
+    background:var(--paper); border:1px solid var(--rule); border-radius:2px;
+    padding:20px 22px; min-height:420px; max-height:60vh; overflow-y:auto;
+  }
+  .log-entry{margin-bottom:18px; line-height:1.65;}
+  .log-entry.player{font-family:var(--mono); font-size:13px; color:var(--brass); margin-bottom:6px;}
+  .log-entry.player::before{content:"> "; color:var(--brass-dim);}
+  .log-entry.narration{font-size:16px;color:var(--text);white-space:pre-wrap;}
+  .log-entry.system{font-family:var(--mono);font-size:11px;color:var(--text-dim);border-left:2px solid var(--rule);padding-left:10px;}
+  .roll-chip{
+    display:inline-block; font-family:var(--mono); font-size:11px; color:var(--ink);
+    background:var(--brass-dim); padding:1px 6px; border-radius:2px; margin:0 3px;
+  }
+
+  .composer{display:flex;gap:8px;margin-top:14px;}
+  .composer input{flex:1;}
+  .composer button{flex-shrink:0;}
+
+  .sidebar{display:flex;flex-direction:column;gap:14px;}
+  .card{
+    background:var(--paper); border:1px solid var(--rule); border-radius:2px; padding:16px 18px;
+  }
+  .card h3{
+    font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--brass-dim); margin:0 0 12px; border-bottom:1px solid var(--rule); padding-bottom:8px;
+  }
+  .hp-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:13px;}
+  .hp-bar{height:6px;background:var(--ink);border-radius:3px;overflow:hidden;margin-top:8px;}
+  .hp-fill{height:100%;background:var(--ok);transition:width .3s ease;}
+  .hp-fill.low{background:var(--danger);}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-family:var(--mono);font-size:12px;margin-top:6px;}
+  .stat-grid div{text-align:center;background:var(--ink);border-radius:2px;padding:6px 2px;}
+  .stat-grid .v{display:block;font-size:15px;color:var(--brass);}
+  .resource-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;padding:4px 0;}
+  .inv-list{list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:12.5px;}
+  .inv-list li{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--rule);}
+  .inv-list li:last-child{border-bottom:none;}
+  .inv-list .qty{color:var(--brass-dim);}
+  .empty-note{font-family:var(--mono);font-size:11px;color:var(--text-dim);font-style:normal;}
+
+  .footer-tools{display:flex;justify-content:space-between;margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+  .footer-tools button{padding:6px 10px;font-size:10px;}
+  .thinking{font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+  .thinking::after{content:"";animation:dots 1.2s steps(4) infinite;}
+  @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ledger — GM Engine</h1>
+    <div class="sub" id="headerSub">not configured</div>
+  </header>
+
+  <!-- SETUP -->
+  <div id="setupScreen" class="setup-card">
+    <h2>Set the table</h2>
+    <p class="hint">
+      Needs a free Gemini API key — get one at
+      <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>.
+      Stored only in this browser, never sent anywhere but Google's API.
+    </p>
+
+    <label>Gemini API key</label>
+    <input type="password" id="apiKey" placeholder="AIza...">
+
+    <label>Character name</label>
+    <input type="text" id="charName" placeholder="e.g. Kestrel">
+
+    <div class="row3">
+      <div><label>Max HP</label><input type="number" id="maxHp" value="20"></div>
+      <div><label>Starting gold</label><input type="number" id="startGold" value="15"></div>
+      <div><label>Level / rank</label><input type="text" id="rank" value="1"></div>
+    </div>
+
+    <label>One-line concept (class/background/vibe)</label>
+    <input type="text" id="concept" placeholder="e.g. disgraced field medic turned smuggler">
+
+    <label>Starting inventory (one item per line: name, qty, short description)</label>
+    <textarea id="startInv" placeholder="rusted shortsword, 1, notched but serviceable
+rations, 3, dried and unappetizing
+lantern oil, 2, half a flask each">rusted shortsword, 1, notched but serviceable
+rations, 3, dried and unappetizing
+lantern oil, 2, half a flask each</textarea>
+
+    <label>Opening scene (where does this start?)</label>
+    <textarea id="openingScene" placeholder="Describe the situation the character wakes into...">Waking in the back of a hired cart, wrists raw from rope, wheels grinding over a dirt road toward a walled town at dawn.</textarea>
+
+    <div class="setup-actions">
+      <button id="startBtn">Begin</button>
+      <button class="ghost" id="loadBtn">Load saved game</button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="gameScreen" class="game" style="display:none;">
+    <div>
+      <div class="log" id="log"></div>
+      <div class="composer">
+        <input type="text" id="actionInput" placeholder="What do you do?">
+        <button id="sendBtn">Act</button>
+      </div>
+      <div class="footer-tools">
+        <span id="statusLine"></span>
+        <button class="ghost" id="resetBtn">Reset game</button>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h3 id="sheetName">Character</h3>
+        <div class="hp-row"><span>HP</span><span id="hpText">--/--</span></div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+      </div>
+      <div class="card">
+        <h3>Resources</h3>
+        <div id="resourceList"></div>
+      </div>
+      <div class="card">
+        <h3>Inventory</h3>
+        <ul class="inv-list" id="invList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "ledger_gm_state_v1";
+let state = null;
+let history = []; // Gemini contents array
+
+// ---------- dice ----------
+function secureRandInt(min, max){ // inclusive
+  const range = max - min + 1;
+  const buf = new Uint32Array(1);
+  let x;
+  do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= Math.floor(4294967296 / range) * range);
+  return min + (x % range);
+}
+function rollDice(notation){
+  // supports "1d20", "2d6+3", "1d8-1"
+  const m = /^(\d+)d(\d+)([+-]\d+)?$/i.exec(notation.trim());
+  if(!m) return {error:`bad dice notation: ${notation}`};
+  const [, nStr, dStr, modStr] = m;
+  const n = parseInt(nStr,10), d = parseInt(dStr,10), mod = modStr ? parseInt(modStr,10) : 0;
+  const rolls = [];
+  for(let i=0;i<n;i++) rolls.push(secureRandInt(1,d));
+  const total = rolls.reduce((a,b)=>a+b,0) + mod;
+  return {rolls, modifier:mod, total};
+}
+
+// ---------- tool implementations (ground truth, not the model) ----------
+const tools = {
+  roll({notation, modifier=0, dc=null, description=""}){
+    const base = rollDice(notation);
+    if(base.error) return base;
+    const total = base.total + modifier;
+    const result = {description, notation, rolls:base.rolls, dice_modifier:base.modifier, applied_modifier:modifier, total};
+    if(dc !== null){ result.dc = dc; result.success = total >= dc; }
+    logSystem(`roll ${notation}${modifier?(modifier>0?'+':'')+modifier:''} → [${base.rolls.join(', ')}]${base.modifier?` (${base.modifier>0?'+':''}${base.modifier} dice mod)`:''} = ${total}${dc!==null?` vs DC ${dc} → ${result.success?'SUCCESS':'FAIL'}`:''}`);
+    return result;
+  },
+  update_hp({delta, reason=""}){
+    const before = state.character.hp;
+    state.character.hp = Math.max(0, Math.min(state.character.maxHp, state.character.hp + delta));
+    logSystem(`HP ${before} → ${state.character.hp} (${delta>=0?'+':''}${delta}) ${reason?'— '+reason:''}`);
+    saveState(); renderSidebar();
+    return {previous_hp:before, new_hp:state.character.hp, max_hp:state.character.maxHp, defeated: state.character.hp<=0};
+  },
+  add_item({name, description="", quantity=1}){
+    const existing = state.inventory.find(i => i.name.toLowerCase() === name.toLowerCase());
+    if(existing){ existing.qty += quantity; }
+    else { state.inventory.push({name, description, qty:quantity}); }
+    logSystem(`+ ${quantity} × ${name}`);
+    saveState(); renderSidebar();
+    return {ok:true, inventory: state.inventory};
+  },
+  remove_item({name, quantity=1}){
+    const existing = state.inventory.find(i => i.name.toLowerCase() === name.toLowerCase());
+    if(!existing || existing.qty < quantity){
+      return {ok:false, error:`player does not have ${quantity} × ${name}`, inventory: state.inventory};
+    }
+    existing.qty -= quantity;
+    if(existing.qty <= 0) state.inventory = state.inventory.filter(i => i !== existing);
+    logSystem(`− ${quantity} × ${name}`);
+    saveState(); renderSidebar();
+    return {ok:true, inventory: state.inventory};
+  },
+  modify_resource({resource, delta, reason=""}){
+    if(!(resource in state.resources)) state.resources[resource] = 0;
+    state.resources[resource] += delta;
+    logSystem(`${resource} ${delta>=0?'+':''}${delta} ${reason?'— '+reason:''} (now ${state.resources[resource]})`);
+    saveState(); renderSidebar();
+    return {resource, new_value: state.resources[resource]};
+  }
+};
+
+const toolDeclarations = [
+  { name:"roll", description:"Roll dice for any check, save, or damage. ALWAYS use this instead of inventing a numeric outcome. If the action's success is uncertain, pass a dc.",
+    parameters:{type:"OBJECT", properties:{
+      notation:{type:"STRING", description:"dice notation like '1d20' or '2d6+3'"},
+      modifier:{type:"NUMBER", description:"situational modifier to add, e.g. character skill bonus"},
+      dc:{type:"NUMBER", description:"difficulty class to beat, omit for plain damage/other rolls"},
+      description:{type:"STRING", description:"what this roll is for"}
+    }, required:["notation"]}},
+  { name:"update_hp", description:"Apply HP change to the player character. Use negative delta for damage, positive for healing.",
+    parameters:{type:"OBJECT", properties:{
+      delta:{type:"NUMBER"}, reason:{type:"STRING"}
+    }, required:["delta"]}},
+  { name:"add_item", description:"Add an item to player inventory (found, bought, given).",
+    parameters:{type:"OBJECT", properties:{
+      name:{type:"STRING"}, description:{type:"STRING"}, quantity:{type:"NUMBER"}
+    }, required:["name"]}},
+  { name:"remove_item", description:"Remove/consume/discard an item from player inventory.",
+    parameters:{type:"OBJECT", properties:{
+      name:{type:"STRING"}, quantity:{type:"NUMBER"}
+    }, required:["name"]}},
+  { name:"modify_resource", description:"Change a tracked numeric resource other than HP or inventory items, e.g. gold, reputation, ammo count.",
+    parameters:{type:"OBJECT", properties:{
+      resource:{type:"STRING"}, delta:{type:"NUMBER"}, reason:{type:"STRING"}
+    }, required:["resource","delta"]}}
+];
+
+// ---------- system instruction ----------
+function systemInstruction(){
+  return `You are a strict, impartial game master running a d20-based RPG for one player.
+
+HARD RULES:
+- You NEVER invent a numeric outcome (dice rolls, damage, HP totals, item counts) in prose. Every number in the fiction must come from a tool result you just received.
+- Before narrating the outcome of any uncertain or risky action, call the "roll" tool with an appropriate dc. Use standard difficulty guidance: trivial=5, easy=10, moderate=15, hard=20, very hard=25.
+- Combat damage: after a successful attack roll, call "roll" again for damage (e.g. "1d6+2") and apply it with update_hp.
+- Any item gained, lost, used, or destroyed must go through add_item / remove_item. Never just say the player "has" or "no longer has" something without calling the tool.
+- Gold, ammo, reputation, or similar tracked numbers go through modify_resource.
+- If remove_item returns ok:false, the player doesn't have that item — narrate that they can't do the action, don't pretend it happened.
+- You may narrate freely for description, dialogue, and flavor with no tool calls when nothing is actually at stake.
+- Keep responses to 1-3 short paragraphs. Vivid but economical. End on something that invites the player's next action, without asking "what do you do?" outright every time.
+- Never break character to mention dice, tools, or game mechanics by name in the narration — narrate only the fictional result.`;
+}
+
+// ---------- Gemini call loop ----------
+async function callGemini(userText){
+  const apiKey = state.apiKey;
+  const model = "gemini-2.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  history.push({ role:"user", parts:[{ text:
+    `PLAYER ACTION: ${userText}\n\nCURRENT STATE (ground truth, do not contradict):\n${JSON.stringify({character:state.character, inventory:state.inventory, resources:state.resources}, null, 2)}`
+  }]});
+
+  let guard = 0;
+  while(guard++ < 6){
+    const body = {
+      system_instruction:{ parts:[{text: systemInstruction()}] },
+      contents: history,
+      tools:[{ functionDeclarations: toolDeclarations }]
+    };
+    const res = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error(`Gemini API error ${res.status}: ${errText}`);
+    }
+    const data = await res.json();
+    const candidate = data.candidates && data.candidates[0];
+    if(!candidate) throw new Error("No candidate returned: " + JSON.stringify(data));
+    const parts = candidate.content.parts;
+    const functionCalls = parts.filter(p => p.functionCall);
+
+    if(functionCalls.length === 0){
+      const text = parts.map(p => p.text || "").join("");
+      history.push({ role:"model", parts });
+      return text;
+    }
+
+    history.push({ role:"model", parts });
+    const responseParts = [];
+    for(const fc of functionCalls){
+      const fn = tools[fc.functionCall.name];
+      let result;
+      try{ result = fn ? fn(fc.functionCall.args || {}) : {error:`unknown tool ${fc.functionCall.name}`}; }
+      catch(e){ result = {error: String(e)}; }
+      responseParts.push({ functionResponse:{ name: fc.functionCall.name, response: result } });
+    }
+    history.push({ role:"user", parts: responseParts });
+  }
+  return "(the GM pauses, unsure how to proceed — try rephrasing your action)";
+}
+
+// ---------- persistence ----------
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({state, history}));
+}
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return false;
+  const parsed = JSON.parse(raw);
+  state = parsed.state; history = parsed.history || [];
+  return true;
+}
+
+// ---------- rendering ----------
+function logPlayer(text){ appendLog(`<div class="log-entry player">${escapeHtml(text)}</div>`); }
+function logNarration(text){ appendLog(`<div class="log-entry narration">${escapeHtml(text)}</div>`); }
+function logSystem(text){ appendLog(`<div class="log-entry system">${escapeHtml(text)}</div>`); }
+function appendLog(html){
+  const log = document.getElementById("log");
+  log.insertAdjacentHTML("beforeend", html);
+  log.scrollTop = log.scrollHeight;
+}
+function escapeHtml(s){ const d=document.createElement("div"); d.innerText=s; return d.innerHTML; }
+
+function renderSidebar(){
+  document.getElementById("sheetName").textContent = `${state.character.name} — Lv.${state.character.rank}`;
+  document.getElementById("hpText").textContent = `${state.character.hp} / ${state.character.maxHp}`;
+  const pct = Math.max(0, Math.min(100, (state.character.hp/state.character.maxHp)*100));
+  const fill = document.getElementById("hpFill");
+  fill.style.width = pct + "%";
+  fill.className = "hp-fill" + (pct <= 30 ? " low" : "");
+
+  const resList = document.getElementById("resourceList");
+  const entries = Object.entries(state.resources);
+  resList.innerHTML = entries.length ? entries.map(([k,v]) =>
+    `<div class="resource-row"><span>${escapeHtml(k)}</span><span>${v}</span></div>`).join("")
+    : `<div class="empty-note">none tracked</div>`;
+
+  const invList = document.getElementById("invList");
+  invList.innerHTML = state.inventory.length ? state.inventory.map(i =>
+    `<li title="${escapeHtml(i.description||'')}"><span>${escapeHtml(i.name)}</span><span class="qty">×${i.qty}</span></li>`).join("")
+    : `<li class="empty-note">empty</li>`;
+}
+
+// ---------- flow control ----------
+async function sendAction(){
+  const input = document.getElementById("actionInput");
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = "";
+  document.getElementById("sendBtn").disabled = true;
+  document.getElementById("statusLine").innerHTML = `<span class="thinking">the GM is thinking</span>`;
+  logPlayer(text);
+  try{
+    const narration = await callGemini(text);
+    logNarration(narration);
+    saveState();
+  }catch(e){
+    logSystem(`Error: ${e.message}`);
+  }finally{
+    document.getElementById("sendBtn").disabled = false;
+    document.getElementById("statusLine").textContent = "";
+    input.focus();
+  }
+}
+
+function parseInventoryText(raw){
+  return raw.split("\n").map(l=>l.trim()).filter(Boolean).map(line=>{
+    const [name, qty, ...rest] = line.split(",").map(s=>s.trim());
+    return { name, qty: parseInt(qty,10)||1, description: rest.join(", ") };
+  });
+}
+
+document.getElementById("startBtn").addEventListener("click", async ()=>{
+  const apiKey = document.getElementById("apiKey").value.trim();
+  if(!apiKey){ alert("Paste your Gemini API key first."); return; }
+  state = {
+    apiKey,
+    character: {
+      name: document.getElementById("charName").value.trim() || "Unnamed",
+      rank: document.getElementById("rank").value.trim() || "1",
+      concept: document.getElementById("concept").value.trim(),
+      hp: parseInt(document.getElementById("maxHp").value,10) || 20,
+      maxHp: parseInt(document.getElementById("maxHp").value,10) || 20,
+    },
+    resources: { gold: parseInt(document.getElementById("startGold").value,10) || 0 },
+    inventory: parseInventoryText(document.getElementById("startInv").value)
+  };
+  history = [];
+  document.getElementById("setupScreen").style.display = "none";
+  document.getElementById("gameScreen").style.display = "grid";
+  document.getElementById("headerSub").textContent = `${state.character.name} · gemini-2.5-flash`;
+  renderSidebar();
+  saveState();
+
+  const opening = document.getElementById("openingScene").value.trim();
+  document.getElementById("statusLine").innerHTML = `<span class="thinking">the GM is thinking</span>`;
+  try{
+    const narration = await callGemini(`(Begin the story.) Opening scene: ${opening}`);
+    logNarration(narration);
+    saveState();
+  }catch(e){ logSystem(`Error: ${e.message}`); }
+  document.getElementById("statusLine").textContent = "";
+});
+
+document.getElementById("loadBtn").addEventListener("click", ()=>{
+  if(loadState()){
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "grid";
+    document.getElementById("headerSub").textContent = `${state.character.name} · gemini-2.5-flash`;
+    renderSidebar();
+    logSystem("— game loaded —");
+  } else {
+    alert("No saved game found in this browser.");
+  }
+});
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(confirm("Erase saved game and return to setup?")){
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+});
+
+document.getElementById("sendBtn").addEventListener("click", sendAction);
+document.getElementById("actionInput").addEventListener("keydown", e=>{ if(e.key==="Enter") sendAction(); });
+
+// auto-load if a save exists
+window.addEventListener("DOMContentLoaded", ()=>{
+  if(localStorage.getItem(STORAGE_KEY)){
+    document.getElementById("loadBtn").textContent = "Load saved game →";
+  }
+});
+</script>
+</body>
+</html>
