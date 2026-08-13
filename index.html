@@ -444,7 +444,7 @@ OUTPUT FORMAT (for your narration text, in Chinese):
 // ---------- Gemini call loop ----------
 async function callGemini(userText){
   const apiKey = state.apiKey;
-  const model = "gemini-3.6-flash";
+  const model = "gemini-3.5-flash-lite";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const publicState = {
@@ -523,7 +523,7 @@ function applyImportedSave(raw){
   state = parsed.state; history = parsed.history || [];
   document.getElementById("setupScreen").style.display = "none";
   document.getElementById("gameScreen").style.display = "grid";
-  document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.6-flash`;
+  document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.5-flash-lite`;
   renderSidebar();
   saveState();
   logSystem("— 存档已载入 —");
@@ -677,7 +677,7 @@ document.getElementById("startBtn").addEventListener("click", async ()=>{
   history = [];
   document.getElementById("setupScreen").style.display = "none";
   document.getElementById("gameScreen").style.display = "grid";
-  document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.6-flash`;
+  document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.5-flash-lite`;
   renderSidebar();
   saveState();
 
@@ -695,7 +695,7 @@ document.getElementById("loadBtn").addEventListener("click", ()=>{
   if(loadState()){
     document.getElementById("setupScreen").style.display = "none";
     document.getElementById("gameScreen").style.display = "grid";
-    document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.6-flash`;
+    document.getElementById("headerSub").textContent = `${state.character.name} · gemini-3.5-flash-lite`;
     renderSidebar();
     logSystem("— 读档成功 —");
   } else {
